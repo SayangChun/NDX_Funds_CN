@@ -1,4 +1,10 @@
 {
+  "functions": {
+    "api/index.mjs": {
+      "runtime": "@vercel/node@3",
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
     { "source": "/(.*)", "destination": "/api/index" }
   ]
