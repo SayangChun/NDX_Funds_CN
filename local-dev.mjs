@@ -93,7 +93,12 @@ let cache = null;
 let loading = null;
 let discoveryCache = null;
 let discoveryLoading = null;
-const APP_DIRECT_SALES_OVERRIDES = {};
+const APP_DIRECT_SALES_OVERRIDES = {
+  "021000": "5000",   // 南方 I类 — 2026-04-08公告：I类限额5000元
+  "021778": "3000",   // 广发 F类 — 2026-02-04起：F类限额3000元
+  "022525": "100",    // 天弘 D类 — 2026-04-08起：全份额（含D类）限额100元
+  "024237": "5000",   // 博时 I类 — 2025-11-13起：直销渠道I类限额5000元
+};
 
 const etagCache = new Map();
 
