@@ -5,9 +5,9 @@
   "type": "module",
   "description": "Node.js 静态站点 + 实时抓取东方财富/天天基金公开接口，展示人民币场外纳斯达克 100 被动份额排行",
   "scripts": {
-    "start": "node index.mjs",
-    "dev": "node --watch index.mjs",
-    "check": "node --check index.mjs && node --check client.js",
+    "start": "node local-dev.mjs",
+    "dev": "node --watch local-dev.mjs",
+    "check": "node --check api/index.mjs && node --check local-dev.mjs && node --check client.js",
     "test": "node --test tests/"
   },
   "engines": {

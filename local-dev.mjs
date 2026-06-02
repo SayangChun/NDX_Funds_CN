@@ -4,6 +4,8 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const IS_VERCEL = process.env.VERCEL === "1";
+const STATIC_ROOT = IS_VERCEL ? process.cwd() : __dirname;
 const PORT = Number(process.env.PORT || 4173);
 const CACHE_MS = Number(process.env.CACHE_MS || 5 * 60 * 1000);
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 8000);
@@ -91,6 +93,8 @@ let cache = null;
 let loading = null;
 let discoveryCache = null;
 let discoveryLoading = null;
+const APP_DIRECT_SALES_OVERRIDES = {};
+
 const etagCache = new Map();
 
 const log = (level, message, meta = {}) => {
@@ -398,6 +402,7 @@ const normalizeFund = async (code) => {
     buyRate: safeRate(basic.RATE),
     minBuy: safeStr(basic.MINSG),
     maxBuy: safeStr(basic.MAXSG),
+    appLimit: APP_DIRECT_SALES_OVERRIDES[basic.FCODE] ?? safeStr(basic.MAXSG),
     riskLevel: safeStr(basic.RISKLEVEL),
     establishDate: safeStr(basic.ESTABDATE),
     isBuy: basic.BUY === true,
@@ -443,6 +448,7 @@ const buildFallbackFund = (code) => {
     buyRate: "--",
     minBuy: "--",
     maxBuy: "--",
+    appLimit: "--",
     riskLevel: "--",
     establishDate: "--",
     isBuy: false,
@@ -459,7 +465,7 @@ const buildFallbackFund = (code) => {
     sinceLaunch: "",
     tags: [`${meta.share}类`, "实时不可用"],
     channels: ["公开销售接口", "实时状态不可用"],
-    note: "实时接口当前不可用，仅展示代码、名称、基金公司、类型与份额。点击\u201C刷新\u201D重试。"
+    note: "实时接口当前不可用，仅展示代码、名称、基金公司、类型与份额。点击“刷新”重试。"
   };
 };
 
@@ -475,7 +481,7 @@ const buildFallbackPayload = (reason) => ({
   warning: [
     `实时接口不可用：${reason}`,
     "已切换到本地种子清单（41 个 2026-06 验证过的场外人民币份额）。",
-    "规模、净值、申购状态、限额等字段在实时数据恢复前显示为 \u201C--\u201D。"
+    "规模、净值、申购状态、限额等字段在实时数据恢复前显示为 “--”。"
   ].join("；"),
   error: reason
 });
@@ -512,7 +518,7 @@ const loadRealtimeFunds = async () => {
       settled.push(...(await Promise.allSettled(batch.map((code) => normalizeFund(code)))));
       if (i + concurrency < codes.length) await sleep(180);
     }
-    const funds = settled
+    let funds = settled
       .filter((item) => item.status === "fulfilled" && item.value && !item.value.excluded)
       .map((item) => item.value)
       .sort((a, b) => a.code.localeCompare(b.code));
@@ -577,9 +583,9 @@ const buildEtag = (statResult) => {
 const serveStatic = async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
-  const filePath = normalize(join(__dirname, pathname));
+  const filePath = normalize(join(STATIC_ROOT, pathname));
 
-  if (!filePath.startsWith(normalize(__dirname))) {
+  if (!filePath.startsWith(normalize(STATIC_ROOT))) {
     send(res, 403, "Forbidden", { "content-type": "text/plain; charset=utf-8" });
     return;
   }
@@ -636,7 +642,7 @@ const handler = async (req, res) => {
 
 export default handler;
 
-if (!process.env.VERCEL) {
+if (!IS_VERCEL) {
   createServer(handler).listen(PORT, () => {
     log("info", "server started", { port: PORT, url: `http://localhost:${PORT}` });
   });

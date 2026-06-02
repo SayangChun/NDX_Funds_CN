@@ -232,7 +232,7 @@ button, input, select { font: inherit; }
 
 .table-wrap { overflow: auto; }
 
-table { width: 100%; min-width: 1380px; border-collapse: collapse; }
+table { width: 100%; min-width: 1520px; border-collapse: collapse; }
 th, td { border-bottom: 1px solid var(--line); padding: 13px 14px; text-align: left; vertical-align: top; }
 th { position: sticky; top: 0; z-index: 1; background: #f8fafb; color: var(--muted); font-size: 12px; font-weight: 800; }
 td { font-size: 14px; }
@@ -253,8 +253,9 @@ td { font-size: 14px; }
 }
 
 .code-cell { color: var(--blue); font-weight: 800; }
-.mgmt-cell, .custody-cell, .limit-cell { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.mgmt-cell, .custody-cell, .limit-cell, .app-limit-cell { color: var(--muted); font-size: 13px; white-space: nowrap; }
 .size-cell { font-weight: 700; white-space: nowrap; }
+.app-limit-cell { font-weight: 700; white-space: nowrap; }
 .name-cell { min-width: 300px; font-weight: 800; }
 
 .muted { color: var(--muted); }
@@ -370,6 +371,7 @@ td { font-size: 14px; }
   .fund-row > td.status-cell::before { content: "申购状态"; }
   .fund-row > td.redeem-days-cell::before { content: "免赎天数"; }
   .fund-row > td.limit-cell::before { content: "单日限额"; }
+  .fund-row > td.app-limit-cell::before { content: "App限额"; }
   .fund-row > td.tags-cell::before { content: "标签"; }
 
   .fund-row .rank-cell { text-align: center; align-self: start; }

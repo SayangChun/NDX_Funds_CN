@@ -180,7 +180,7 @@ const renderDetail = (fund) => {
     ["主基金", dom("strong", { text: fund.base || "--" })],
     ["跟踪标的", dom("strong", { text: `${fund.indexName} (${fund.indexCode})` })],
     ["净值与日期", dom("p", { text: `单位净值 ${fund.nav}，累计净值 ${fund.accumulatedNav}，日期 ${fund.navDate || "--"}` })],
-    ["申购规则", dom("p", { text: `最低申购 ${fund.minBuy} 元；单日限额 ${fund.maxBuy} 元；原申购费 ${fund.sourceRate || "--"}，当前费用 ${buyRateDisplay}；持有免赎 ${fund.freeRedeemDays || "--"} 天` })],
+    ["申购规则", dom("p", { text: `最低申购 ${fund.minBuy} 元；天天基金限额 ${fund.maxBuy} 元；基金公司App限额 ${fund.appLimit && fund.appLimit !== "--" ? fund.appLimit + " 元" : fund.appLimit}；原申购费 ${fund.sourceRate || "--"}，当前费用 ${buyRateDisplay}；持有免赎 ${fund.freeRedeemDays || "--"} 天` })],
     ["运作费用", dom("p", { text: `管理费 ${fund.mgmtFee}；托管费 ${fund.custodyFee}；基金规模 ${fund.fundSize} 亿；跟踪误差 ${fund.trackingError}` })],
     ["阶段涨幅", dom("p", { text: `近1月 ${formatPercent(fund.oneMonth)}；近3月 ${formatPercent(fund.threeMonth)}；近1年 ${formatPercent(fund.oneYear)}；今年 ${formatPercent(fund.thisYear)}` })],
     ["基金资料", dom("p", { text: `成立日 ${fund.establishDate}；风险等级 ${fund.riskLevel}；管理人 ${fund.manager}` })],
@@ -237,6 +237,7 @@ const renderRow = (fund, index) => {
 
   setCell(fragment, ".redeem-days-cell", fund.freeRedeemDays);
   setCell(fragment, ".limit-cell", fund.maxBuy && fund.maxBuy !== "--" ? `${fund.maxBuy} 元/日` : "未公布");
+  setCell(fragment, ".app-limit-cell", fund.appLimit && fund.appLimit !== "--" ? `${fund.appLimit} 元/日` : "未公布");
 
   const tagsCell = fragment.querySelector(".tags-cell");
   tagsCell.replaceChildren(
@@ -271,7 +272,7 @@ const renderRows = () => {
 
   if (!visibleFunds.length) {
     const row = dom("tr", {}, [
-      dom("td", { colspan: 14, class: "empty-state", text: "没有符合当前筛选条件的基金份额" })
+      dom("td", { colspan: 15, class: "empty-state", text: "没有符合当前筛选条件的基金份额" })
     ]);
     els.table.appendChild(row);
     return;
@@ -285,7 +286,7 @@ const renderRows = () => {
 const renderLoading = (message) => {
   els.table.replaceChildren(
     dom("tr", {}, [
-      dom("td", { colspan: 14, class: "empty-state loading-state" }, [
+      dom("td", { colspan: 15, class: "empty-state loading-state" }, [
         dom("span", { class: "spinner", "aria-hidden": "true" }),
         dom("span", { text: message })
       ])
@@ -297,7 +298,7 @@ const renderLoading = (message) => {
 const renderError = (message) => {
   els.table.replaceChildren(
     dom("tr", {}, [
-      dom("td", { colspan: 14, class: "empty-state" }, [
+      dom("td", { colspan: 15, class: "empty-state" }, [
         dom("div", { class: "error-title", text: "实时数据加载失败" }),
         dom("div", { class: "error-detail", text: message })
       ])
