@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node dev-server.mjs",
     "dev": "node --watch dev-server.mjs",
-    "check": "node --check dev-server.mjs && node --check client.js",
+    "check": "node --check dev-server.mjs && node --check index.mjs && node --check client.js",
     "test": "node --test tests/"
   },
   "engines": {
