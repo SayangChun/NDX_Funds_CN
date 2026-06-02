@@ -20,7 +20,7 @@ echo  First load may take 5-20 seconds...
 echo.
 echo  Starting server...
 
-start "Nasdaq100-Server" /MIN node server.mjs
+start "Nasdaq100-Server" /MIN node index.mjs
 timeout /T 5 /NOBREAK >nul
 start "" http://localhost:4173
 

@@ -1,7 +1,15 @@
+import { createServer } from "node:http";
+import { readFile, stat } from "node:fs/promises";
+import { extname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const PORT = Number(process.env.PORT || 4173);
 const CACHE_MS = Number(process.env.CACHE_MS || 5 * 60 * 1000);
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 8000);
 const FETCH_RETRIES = Number(process.env.FETCH_RETRIES || 2);
 const DISCOVERY_CACHE_MS = Number(process.env.DISCOVERY_CACHE_MS || 60 * 60 * 1000);
+const STATIC_CACHE_SECONDS = Number(process.env.STATIC_CACHE_SECONDS || 3600);
 
 const SEED_CODES = [
   "000834", "006479", "008971", "012752", "012870", "014978", "015299",
@@ -57,6 +65,18 @@ const FALLBACK_META = {
 };
 
 const SHARE_RE = /(?:人民币)?([A-Z])(?:人民币)?$/i;
+const MIME = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml"
+};
+const STATIC_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "x-frame-options": "DENY"
+};
 const SEARCH_KEYWORDS = [
   "纳斯达克100", "纳指100", "NASDAQ100", "纳斯达克100指数", "纳指100指数",
   "纳指ETF联接", "纳斯达克ETF联接", "纳指100ETF", "纳斯达克100QDII", "纳指QDII",
@@ -71,6 +91,7 @@ let cache = null;
 let loading = null;
 let discoveryCache = null;
 let discoveryLoading = null;
+const etagCache = new Map();
 
 const log = (level, message, meta = {}) => {
   const entry = { ts: new Date().toISOString(), level, message, ...meta };
@@ -438,7 +459,7 @@ const buildFallbackFund = (code) => {
     sinceLaunch: "",
     tags: [`${meta.share}类`, "实时不可用"],
     channels: ["公开销售接口", "实时状态不可用"],
-    note: "实时接口当前不可用，仅展示代码、名称、基金公司、类型与份额。点击“刷新”重试。"
+    note: "实时接口当前不可用，仅展示代码、名称、基金公司、类型与份额。点击\u201C刷新\u201D重试。"
   };
 };
 
@@ -454,7 +475,7 @@ const buildFallbackPayload = (reason) => ({
   warning: [
     `实时接口不可用：${reason}`,
     "已切换到本地种子清单（41 个 2026-06 验证过的场外人民币份额）。",
-    "规模、净值、申购状态、限额等字段在实时数据恢复前显示为 “--”。"
+    "规模、净值、申购状态、限额等字段在实时数据恢复前显示为 \u201C--\u201D。"
   ].join("；"),
   error: reason
 });
@@ -547,7 +568,50 @@ const sendJson = (res, status, payload) => {
   send(res, status, JSON.stringify(payload), { "content-type": "application/json; charset=utf-8" });
 };
 
-export default async function handler(req, res) {
+const buildEtag = (statResult) => {
+  const size = statResult.size;
+  const mtime = Math.floor(statResult.mtimeMs);
+  return `W/"${size.toString(16)}-${mtime.toString(16)}"`;
+};
+
+const serveStatic = async (req, res) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = url.pathname === "/" ? "/index.html" : decodeURIComponent(url.pathname);
+  const filePath = normalize(join(__dirname, pathname));
+
+  if (!filePath.startsWith(normalize(__dirname))) {
+    send(res, 403, "Forbidden", { "content-type": "text/plain; charset=utf-8" });
+    return;
+  }
+
+  try {
+    const [body, info] = await Promise.all([readFile(filePath), stat(filePath)]);
+    const etag = etagCache.get(filePath) || buildEtag(info);
+    etagCache.set(filePath, etag);
+    const headers = {
+      ...STATIC_HEADERS,
+      "content-type": MIME[extname(filePath)] || "application/octet-stream",
+      "cache-control": `public, max-age=${STATIC_CACHE_SECONDS}`,
+      etag
+    };
+    if (req.headers["if-none-match"] === etag) {
+      res.writeHead(304, headers);
+      res.end();
+      return;
+    }
+    res.writeHead(200, headers);
+    res.end(body);
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      send(res, 404, "Not found", { "content-type": "text/plain; charset=utf-8" });
+    } else {
+      log("error", "static serve failed", { path: pathname, error: error.message });
+      send(res, 500, "Internal Server Error", { "content-type": "text/plain; charset=utf-8" });
+    }
+  }
+};
+
+const handler = async (req, res) => {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
     if (url.pathname === "/api/funds") {
@@ -563,10 +627,17 @@ export default async function handler(req, res) {
       });
       return;
     }
-    res.writeHead(404, { "content-type": "application/json" });
-    res.end(JSON.stringify({ error: "Not found" }));
+    await serveStatic(req, res);
   } catch (error) {
     log("error", "request failed", { path: req.url, error: error.message });
     sendJson(res, 500, { error: error.message });
   }
+};
+
+export default handler;
+
+if (!process.env.VERCEL) {
+  createServer(handler).listen(PORT, () => {
+    log("info", "server started", { port: PORT, url: `http://localhost:${PORT}` });
+  });
 }
