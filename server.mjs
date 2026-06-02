@@ -4,6 +4,7 @@ import { extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+const IS_VERCEL = process.env.VERCEL === "1";
 const PORT = Number(process.env.PORT || 4173);
 const CACHE_MS = Number(process.env.CACHE_MS || 5 * 60 * 1000);
 const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 8000);
@@ -634,6 +635,10 @@ const handler = async (req, res) => {
   }
 };
 
-createServer(handler).listen(PORT, () => {
-  log("info", "server started", { port: PORT, url: `http://localhost:${PORT}` });
-});
+export default handler;
+
+if (!IS_VERCEL) {
+  createServer(handler).listen(PORT, () => {
+    log("info", "server started", { port: PORT, url: `http://localhost:${PORT}` });
+  });
+}
