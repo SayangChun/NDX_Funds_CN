@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+.idea/
+.vscode/
+coverage/
+.nyc_output/
+*.tsbuildinfo
+dist/
+build/

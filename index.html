@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>纳斯达克100场外被动基金排行</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">QDII / ETF联接 / LOF场外份额</p>
+          <h1>纳斯达克100场外被动基金排行</h1>
+          <p class="hero-note">
+            仅收录人民币场外份额，不含场内ETF。LOF产品仅展示其场外可申购份额，并在列表中单独标识。
+          </p>
+        </div>
+        <div class="source-box">
+          <span>数据口径</span>
+          <strong>静态初版清单</strong>
+          <p>基金简称、代码、类型与份额来自公开基金资料交叉整理；规模、限额、申购状态需接入实时源后自动刷新。</p>
+          <div class="source-actions">
+            <button type="button" id="refreshBtn" class="refresh-btn">刷新数据</button>
+            <time id="updatedAt" datetime="2026-06-01">更新于 2026-06-01</time>
+          </div>
+        </div>
+      </header>
+
+      <section class="stats-grid" aria-label="概览统计">
+        <article class="metric">
+          <span>收录份额</span>
+          <strong id="totalFunds">0</strong>
+          <small>人民币场外份额</small>
+        </article>
+        <article class="metric">
+          <span>主基金</span>
+          <strong id="totalFamilies">0</strong>
+          <small>同一基金A/C/I等份额合并计数</small>
+        </article>
+        <article class="metric">
+          <span>开放申购候选</span>
+          <strong id="openCount">0</strong>
+          <small>以天天基金/东方财富公开销售接口状态为准</small>
+        </article>
+        <article class="metric">
+          <span>最低运作费率</span>
+          <strong id="lowestFee">--</strong>
+          <small>当前申购费率，非管理费率</small>
+        </article>
+      </section>
+
+      <section class="share-mix-panel" aria-label="份额类型分布">
+        <div>
+          <h2>份额类型分布</h2>
+          <p>A/C为主，I/D/E/F多为特定渠道份额，购买前需要确认平台是否开放。</p>
+        </div>
+        <div id="shareMix" class="share-mix"></div>
+      </section>
+
+      <section class="controls" aria-label="筛选与排序">
+        <label class="search-field">
+          <span>搜索</span>
+          <input id="searchInput" type="search" placeholder="输入代码、基金简称或基金公司" />
+        </label>
+        <label>
+          <span>基金公司</span>
+          <select id="managerFilter">
+            <option value="all">全部公司</option>
+          </select>
+        </label>
+        <label>
+          <span>份额类型</span>
+          <select id="shareFilter">
+            <option value="all">全部份额</option>
+          </select>
+        </label>
+        <label>
+          <span>产品类型</span>
+          <select id="typeFilter">
+            <option value="all">全部类型</option>
+          </select>
+        </label>
+        <label>
+          <span>排序</span>
+          <select id="sortSelect">
+            <option value="score">综合推荐</option>
+            <option value="fee">总费率最低</option>
+            <option value="size">基金规模最大</option>
+            <option value="oneYear">近一年涨幅</option>
+            <option value="company">基金公司</option>
+            <option value="code">基金代码</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="method-panel" aria-label="收录口径">
+        <div>
+          <h2>收录口径</h2>
+          <p>
+            后端每次刷新会先搜索纳斯达克100相关基金代码，再逐只读取公开基金资料接口，并仅保留名称或指数口径明确指向纳斯达克100的人民币场外被动份额；不收录场内ETF、主动QDII、纳斯达克综指、纳斯达克生物科技、纳斯达克科技市值加权等非纳指100产品。
+          </p>
+        </div>
+        <div class="method-grid">
+          <div>
+            <span>推荐排序</span>
+            <strong>先看低费率和可买性</strong>
+          </div>
+          <div>
+            <span>实时字段</span>
+            <strong>规模、管理费、托管费、净值、涨幅、申购状态</strong>
+          </div>
+          <div>
+            <span>LOF处理</span>
+            <strong>保留场外份额并加标签</strong>
+          </div>
+        </div>
+      </section>
+
+      <div id="warningBanner" class="warning-banner" role="status" aria-live="polite" hidden></div>
+
+      <section class="list-panel">
+        <div class="panel-head">
+          <div>
+            <h2>基金列表</h2>
+            <p><span id="visibleCount">0</span> 只份额符合当前条件</p>
+          </div>
+          <div class="legend" aria-label="标签说明">
+            <span class="tag tag-good">低费率</span>
+            <span class="tag tag-info">场外</span>
+            <span class="tag tag-warn">LOF</span>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>排名</th>
+                <th>代码</th>
+                <th>基金简称</th>
+                <th>基金公司</th>
+                <th>份额</th>
+                <th>类型</th>
+                <th>申购费</th>
+                <th>管理费</th>
+                <th>托管费</th>
+                <th>规模(亿)</th>
+                <th>申购状态</th>
+                <th>免赎天数</th>
+                <th>单日限额</th>
+                <th>标签</th>
+              </tr>
+            </thead>
+            <tbody id="fundTable"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="source-links" aria-label="参考来源">
+        <h2>参考来源与后续校验</h2>
+        <p>
+          实时字段通过天天基金/东方财富公开接口抓取，种子清单（41 个场外人民币份额）经三方公开资料交叉验证。投资前请以基金公司产品页、基金合同/招募说明书、销售平台可购状态和QDII额度看板为准。
+        </p>
+        <div class="source-link-grid">
+          <a href="https://qdiifund.com/2025/07/21/nasdaq-qdii-fund/" target="_blank" rel="noreferrer">QDII Fund 纳指100场外基金整理（2025-07）</a>
+          <a href="https://www.etf-666.com/passive" target="_blank" rel="noreferrer">钱攒攒 纳指100场外基金实时数据</a>
+          <a href="https://feixia.org/" target="_blank" rel="noreferrer">FEIXIA QDII 申购额度看板</a>
+          <a href="http://fundf10.eastmoney.com/jbgk_000834.html" target="_blank" rel="noreferrer">天天基金 基本概况模板（替换末 6 位为基金代码）</a>
+        </div>
+      </section>
+    </main>
+
+    <template id="fundRowTemplate">
+      <tr class="fund-row" tabindex="0" role="button" aria-expanded="false">
+        <td class="rank-cell" data-label="排名"></td>
+        <td class="code-cell" data-label="代码"></td>
+        <td class="name-cell" data-label="基金简称"></td>
+        <td class="manager-cell" data-label="基金公司"></td>
+        <td class="share-cell" data-label="份额"></td>
+        <td class="type-cell" data-label="类型"></td>
+        <td class="fee-cell" data-label="申购费"></td>
+        <td class="mgmt-cell" data-label="管理费"></td>
+        <td class="custody-cell" data-label="托管费"></td>
+        <td class="size-cell" data-label="规模(亿)"></td>
+        <td class="status-cell" data-label="申购状态"></td>
+        <td class="redeem-days-cell" data-label="免赎天数"></td>
+        <td class="limit-cell" data-label="单日限额"></td>
+        <td class="tags-cell" data-label="标签"></td>
+      </tr>
+      <tr class="detail-row">
+        <td colspan="14"></td>
+      </tr>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
